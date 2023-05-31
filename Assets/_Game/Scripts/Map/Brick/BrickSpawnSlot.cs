@@ -4,24 +4,32 @@ using UnityEngine;
 
 public class BrickSpawnSlot : MonoBehaviour
 {
-    bool m_HasBrick;
-
-    void Start()
+    BrickSpawner m_BrickSpawner;
+    bool m_JustSpawn;
+    public void SetBrickSpawner(BrickSpawner gameObject)
     {
-        
+        m_BrickSpawner = gameObject;
     }
-
-    // Update is called once per frame
-    void Update()
+    private void Update()
     {
-        SetBrickCheck(gameObject.transform.childCount > 0);
+        if (m_BrickSpawner != null && m_BrickSpawner.IsSpawnComplete())
+        {
+            SpawnUpdateAuto();
+        }
     }
-    public void SetBrickCheck(bool a_HasBrick)
+    private void SpawnUpdateAuto()
     {
-        m_HasBrick = a_HasBrick;
+        if (transform.childCount > 0) return;
+        if (!m_JustSpawn)
+        {
+            m_JustSpawn = true;
+            StartCoroutine(Spawn());
+        }    
     }
-    public bool HasBrick()
+    IEnumerator Spawn()
     {
-        return m_HasBrick;
+        yield return new WaitForSeconds(m_BrickSpawner.GetTimeRespawn());
+        m_BrickSpawner.SpawnUpdate(this);
+        m_JustSpawn = false;
     }
 }

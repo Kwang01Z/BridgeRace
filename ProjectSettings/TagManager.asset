@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Floor
   - BridgeTile
+  - Brick
   layers:
   - Default
   - TransparentFX
@@ -14,8 +15,8 @@ TagManager:
   - Water
   - UI
   - Ground
-  - 
-  - 
+  - Brick
+  - Bot
   - 
   - 
   - 

@@ -4,31 +4,19 @@ using UnityEngine;
 
 public class BrickSpawner : MonoBehaviour
 {
+    [SerializeField] int m_MaxColorCount;
     [SerializeField] int m_ColNum;
     [SerializeField] int m_RowNum;
     [SerializeField] float m_MinDistance;
-    [SerializeField] List<BrickPooler> m_Bricks;
-    [SerializeField] BrickPooler m_PlayerBrickPooler;
     [SerializeField] float m_TimeRespawn;
-    List<BrickSpawnSlot> m_BrickSpawnSlots;
-    private void Awake()
-    {
-        foreach (BrickPooler pooler in m_Bricks)
-        {
-            pooler.Init(transform);
-        }
-        m_PlayerBrickPooler.Init(transform);
-        m_BrickSpawnSlots = new List<BrickSpawnSlot>();
-    }
-    void Start()
+    [SerializeField] List<ColorType> m_ColorTypes;
+    BrickPooler m_MainPooler;
+    List<BrickSpawnSlot> m_BrickSpawnSlots = new List<BrickSpawnSlot>();
+    bool m_IsSpawnComplete;
+    List<BrickSpawnSlot> slotClone = new List<BrickSpawnSlot>();
+    void Awake()
     {
         Init();
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        SpawnUpdate();
     }
     void Init()
     {
@@ -39,44 +27,74 @@ public class BrickSpawner : MonoBehaviour
             {
                 GameObject newSlot = new GameObject();
                 newSlot.gameObject.transform.parent = transform;
-                newSlot.name = "Slot_" + (i + 1) + "_" + (j + 1);
+                newSlot.name = "Floor "+ transform.parent.name + ": Slot_" + (i + 1) + "_" + (j + 1);
                 newSlot.AddComponent(typeof(BrickSpawnSlot));
                 newSlot.transform.position = transform.position + new Vector3(halfMinDistance * j, 0, halfMinDistance * i);
                 m_BrickSpawnSlots.Add(newSlot.GetComponent<BrickSpawnSlot>());        
             }
         }
-        SpawnBrick();
-    }
-
-    void SpawnBrick()
-    {
-        List<BrickSpawnSlot> slotClone = new List<BrickSpawnSlot>();
+        slotClone = new List<BrickSpawnSlot>();
         m_BrickSpawnSlots.ForEach((item) =>
         {
             slotClone.Add(item);
         });
-        // Spawn Brick For Bots
-        m_Bricks.ForEach((pooler) =>
+        m_IsSpawnComplete = true;
+    }
+    public void AddColorType(ColorType a_color, BrickPooler a_brickPooler)
+    {
+        if (m_ColorTypes.Count >= m_MaxColorCount) return;
+        for (int i = 0; i < m_ColorTypes.Count; i++)
         {
-            int typeCount = m_ColNum * m_RowNum / 4;
-            for (int i = typeCount; i > 0; i--)
+            if (m_ColorTypes[i].Equals(a_color)) return;
+        }
+        m_ColorTypes.Add(a_color);
+        m_MainPooler = a_brickPooler;
+        SpawnBrick(a_color);
+    }
+    public void SpawnBrick(ColorType a_colorType)
+    {
+        int typeCount = m_ColNum * m_RowNum / m_MaxColorCount;
+        for (int i = typeCount; i > 0; i--)
+        {
+            int rand = Random.Range(0, slotClone.Count);
+            BrickSpawnSlot slot = slotClone[rand];
+            GameObject brick = m_MainPooler.Spawn(slot.transform, slot.transform.position, slot.transform.rotation, a_colorType);
+            brick.GetComponent<Brick>().SetColor(a_colorType);
+            slot.SetBrickSpawner(this);
+            slotClone.Remove(slot);
+        }
+
+    }
+    public void SpawnUpdate(BrickSpawnSlot a_BrickSpawnSlot)
+    {
+        int rand = Random.Range(0, m_ColorTypes.Count);
+        GameObject brick = m_MainPooler.Spawn(a_BrickSpawnSlot.transform, a_BrickSpawnSlot.transform.position, a_BrickSpawnSlot.transform.rotation, m_ColorTypes[rand]);
+        brick.GetComponent<Brick>().SetColor(m_ColorTypes[rand]);
+    }
+    public bool IsSpawnComplete()
+    {
+        return m_IsSpawnComplete;
+    }
+    public float GetTimeRespawn()
+    {
+        return m_TimeRespawn;
+    }
+    public List<Brick> GetListBrickByType(ColorType colorType)
+    {
+        List<Brick> bricks = new List<Brick>();
+        m_BrickSpawnSlots.ForEach((slot)=>
+        {
+            if (slot.GetComponentInChildren<Brick>())
             {
-                int rand = Random.Range(0, slotClone.Count);
-                BrickSpawnSlot slot = slotClone[rand];
-                pooler.Spawn(slot.transform, slot.transform.position, slot.transform.rotation);
-                slotClone.Remove(slot);
+                Brick brick = slot.GetComponentInChildren<Brick>();
+                if (brick.GetColor().Equals(colorType))
+                {
+                    bricks.Add(brick);
+                }    
             }
         });
-        // Spawn Brick for Player
-        slotClone.ForEach((slot2) =>
-        {
-            m_PlayerBrickPooler.Spawn(slot2.transform, slot2.transform.position, slot2.transform.rotation);
-        });
-    }
-    void SpawnUpdate()
-    { 
-        
-    }
+        return bricks;
+    }  
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.blue;

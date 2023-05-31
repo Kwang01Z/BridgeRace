@@ -2,21 +2,26 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "Brick", menuName = "ScriptableObject/BrickPooler", order = 1)]
-public class BrickPooler : ScriptableObject
+public class BrickPooler : MonoBehaviour
 {
-    [SerializeField] GameObject m_MainBrick;
+    [SerializeField] Brick m_MainBrick;
     ObjectSpawner m_ObjectSpawner;
-    public void Init(Transform a_parent)
+    private void Awake()
     {
-        m_ObjectSpawner = new ObjectSpawner(a_parent, m_MainBrick, 5);
+        Init();
     }
-    public void Spawn(Transform a_parent, Vector3 a_pos, Quaternion a_quat)
+    public void Init()
     {
-        m_ObjectSpawner.Spawn(a_parent, a_pos, a_quat);
+        m_ObjectSpawner = new ObjectSpawner(transform, m_MainBrick.gameObject, 5);
     }
-    public void Despawn(Transform a_root, GameObject a_obj)
+    public GameObject Spawn(Transform a_parent, Vector3 a_pos, Quaternion a_quat, ColorType color)
     {
-        m_ObjectSpawner.Despawn(a_root, a_obj);
+        GameObject obj = m_ObjectSpawner.Spawn(a_parent, a_pos, a_quat);
+        obj.GetComponent<Brick>().SetColor(color);
+        return obj;
+    }
+    public void Despawn(GameObject a_obj)
+    {
+        m_ObjectSpawner.Despawn(transform, a_obj);
     }
 }
